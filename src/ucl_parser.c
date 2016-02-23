@@ -2448,6 +2448,16 @@ ucl_parser_new (int flags)
 	return parser;
 }
 
+void
+ucl_parser_set_filename (struct ucl_parser *parser, const char *filename)
+{
+	if (parser->cur_file)
+		free(parser->cur_file);
+
+	parser->cur_file = strdup(filename);
+	return;
+}
+
 bool
 ucl_parser_set_default_priority (struct ucl_parser *parser, unsigned prio)
 {

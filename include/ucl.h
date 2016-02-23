@@ -890,6 +890,13 @@ struct ucl_parser;
 UCL_EXTERN struct ucl_parser* ucl_parser_new (int flags);
 
 /**
+ * Sets the filename for the parser when using ucl_parser_add_string
+ * @param parser parser object
+ * @param filename filename
+ */
+UCL_EXTERN void ucl_parser_set_filename (struct ucl_parser *parser, const char *filename);
+
+/**
  * Sets the default priority for the parser applied to chunks that does not
  * specify priority explicitly
  * @param parser parser object
