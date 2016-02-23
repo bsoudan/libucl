@@ -117,15 +117,53 @@ ucl_load(PyObject *self, PyObject *args) {
 	return NULL;
 }
 
+static ucl_object_t*
+_internal_parse_ucl(char *uclstr, const char *filename)
+{
+	struct ucl_parser* parser = ucl_parser_new (0);
+	ucl_parser_set_filename(parser, filename);
+
+	ucl_parser_add_string (parser, uclstr, 0);
+
+	if (ucl_parser_get_error (parser) != NULL) {
+		PyErr_SetString(PyExc_ValueError, ucl_parser_get_error(parser));
+		return NULL;
+	}
+	ucl_object_t* obj = ucl_parser_get_object (parser);
+	ucl_parser_free (parser);
+
+	return obj;
+}
+
 static PyObject*
 ucl_validate(PyObject *self, PyObject *args) {
-	char  *uclstr, *schema;
-	if (PyArg_ParseTuple(args, "zz", &uclstr, &schema)) {
-		if (!uclstr || !schema) {
+	char  *uclstr, *schemastr;
+	if (PyArg_ParseTuple(args, "zz", &schemastr, &uclstr)) {
+		if (!schemastr || !uclstr) {
 			Py_RETURN_NONE;
 		}
-		PyErr_SetString(PyExc_NotImplementedError, "schema validation is not yet supported");
-		return NULL;
+
+		ucl_object_t* ucl = _internal_parse_ucl(uclstr, "configuration text");
+		if (!ucl) return NULL;
+
+		ucl_object_t* schema = _internal_parse_ucl(schemastr, "schema text");
+		if (!schema) {
+			ucl_object_unref(ucl);
+			return NULL;
+		}
+
+		struct ucl_schema_error err;
+
+		if (!ucl_object_validate(schema, ucl, &err)) {
+			char errorstr[1024];
+			snprintf(errorstr, sizeof(errorstr), "%s: %s", err.obj->key, err.msg);
+			errorstr[sizeof(errorstr)-1] = '\0';
+
+			PyErr_SetString(PyExc_ValueError, errorstr);
+			return NULL;
+		};
+
+		Py_RETURN_TRUE;
 	}
 	return NULL;
 }
